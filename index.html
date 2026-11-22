@@ -159,6 +159,16 @@ details.edit summary { cursor: pointer; font-weight: 600; min-height: 44px; disp
 .ticket { background: var(--bg); border: 1px dashed var(--muted); border-radius: 8px; padding: 14px; }
 .ticket .rt { font-size: 22px; letter-spacing: 0.1em; }
 .ticket .rl { font-size: 20px; font-weight: 700; padding: 5px 0; }
+#printArea { display: none; }
+@page { margin: 4mm; }
+@media print {
+  main { display: none !important; }
+  html, body { background: #fff !important; color: #000 !important; }
+  #printArea { display: block !important; color: #000; background: #fff; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 18px; }
+  #printArea h1 { font-size: 24px; text-align: center; margin: 0 0 4px; letter-spacing: 0.1em; color: #000; }
+  #printArea .pm { text-align: center; font-size: 14px; margin-bottom: 10px; border-bottom: 2px solid #000; padding-bottom: 6px; }
+  #printArea .pl { padding: 6px 0; font-weight: 700; border-bottom: 1px dashed #000; }
+}
 .wsum, .wadmin { margin-top: 18px; }
 .wbtn { width: 100%; font: inherit; color: inherit; background: none; border: 0; border-top: 1px solid var(--line); border-radius: 0; text-align: left; min-height: 44px; align-items: center; cursor: pointer; padding: 8px 0; }
 .wbtn:hover { background: var(--bg); }
@@ -229,6 +239,7 @@ details.edit summary { cursor: pointer; font-weight: 600; min-height: 44px; disp
 
   <p class="foot">Të dhënat ruhen vetëm në këtë pajisje dhe këtë shfletues.</p>
 </main>
+<div id="printArea" aria-hidden="true"></div>
 
 <script>
 (function () {
@@ -414,7 +425,15 @@ details.edit summary { cursor: pointer; font-weight: 600; min-height: 44px; disp
       kitchen.lines.forEach(function (l) { var kr = el('div', 'rl'); kr.appendChild(el('span', null, l.qty + ' x ' + l.name)); kt.appendChild(kr); });
       c.appendChild(kt);
       var ka = el('div', 'actions');
-      var kc = el('button', 'primary', 'Kopjo tekstin'); kc.type = 'button';
+      var kp = el('button', 'primary', 'Printo'); kp.type = 'button';
+      kp.onclick = function () {
+        var pa = $('printArea'); pa.innerHTML = '';
+        pa.appendChild(el('h1', null, 'KUZHINA'));
+        pa.appendChild(el('div', 'pm', 'Tavolina ' + kitchen.table + (kitchen.waiter ? ' · ' + kitchen.waiter : '') + ' · ' + kitchen.time));
+        kitchen.lines.forEach(function (l) { pa.appendChild(el('div', 'pl', l.qty + ' x ' + l.name)); });
+        try { window.print(); } catch (e) {}
+      };
+      var kc = el('button', null, 'Kopjo tekstin'); kc.type = 'button';
       kc.onclick = function () {
         var txt = 'KUZHINA\nTavolina ' + kitchen.table + (kitchen.waiter ? ' - ' + kitchen.waiter : '') + ' - ' + kitchen.time + '\n' +
           kitchen.lines.map(function (l) { return l.qty + ' x ' + l.name; }).join('\n');
@@ -423,8 +442,8 @@ details.edit summary { cursor: pointer; font-weight: 600; min-height: 44px; disp
       };
       var kx = el('button', null, 'Kthehu te porosia'); kx.type = 'button';
       kx.onclick = function () { kitchen = null; render(); };
-      ka.appendChild(kc); ka.appendChild(kx); c.appendChild(ka);
-      var kh = el('p', 'hint', 'Kjo faqe nuk e printon drejtpërdrejt. Kopjoje tekstin ose bëj screenshot dhe dërgoje te printeri i kuzhinës.');
+      ka.appendChild(kp); ka.appendChild(kc); ka.appendChild(kx); c.appendChild(ka);
+      var kh = el('p', 'hint', '"Printo" hap printimin e pajisjes dhe e dërgon biletën te printeri i lidhur (p.sh. AirPrint ose printeri i kuzhinës). Nëse nuk hapet printimi, kopjo tekstin ose bëj screenshot.');
       kh.style.marginTop = '10px'; c.appendChild(kh);
       return;
     }
