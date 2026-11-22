@@ -212,7 +212,7 @@ details.edit summary { cursor: pointer; font-weight: 600; min-height: 44px; disp
     <div class="card" id="billCard"></div>
   </section>
 
-  <section class="card">
+  <section class="card" id="menuEdit" aria-label="Ndrysho menunë dhe çmimet" hidden>
     <details class="edit">
       <summary>Ndrysho menunë dhe çmimet</summary>
       <div id="editList"></div>
@@ -502,6 +502,7 @@ details.edit summary { cursor: pointer; font-weight: 600; min-height: 44px; disp
   var showReport = false;
   function renderReport() {
     var c = $('report'); c.hidden = !showReport;
+    $('menuEdit').hidden = !showReport;
     if (!showReport) return;
     c.innerHTML = '';
     var head = el('div', 'card-head');
@@ -879,6 +880,7 @@ details.edit summary { cursor: pointer; font-weight: 600; min-height: 44px; disp
   $('openBills').onclick = function () { request('bills'); };
   $('openArchive').onclick = function () { request('archive'); };
 
+  $('report').after($('menuEdit'));
   render(); renderEdit();
   // Dita e re fillon vetë, edhe nëse faqja ka qëndruar e hapur gjatë natës
   setInterval(function () { if (rollover()) render(); }, 30000);
