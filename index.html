@@ -1,0 +1,889 @@
+<!doctype html><html lang="sq"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light}body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style></head><body>
+<title>Faturimi i Restorantit</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+/* Layout: grid i 10 tavolinave sipër; poshtë paneli i tavolinës së zgjedhur (menuja majtas, fatura djathtas në ekran të gjerë). */
+:root {
+  --bg: #f3f1ee; --surface: #ffffff; --fg: #1d1b18; --muted: #6a645c; --line: #ddd8d0;
+  --free: #e9f3ec; --free-fg: #1f6b3b; --busy: #fbe9d2; --busy-fg: #8a4a00; --busy-line: #e0a458;
+  --accent: #b3401f; --accent-fg: #ffffff; --sel: #1d1b18;
+  --occ: #fbdcd8; --occ-fg: #9b1c14; --occ-line: #e0645a;
+  /* Ngjyrat e kamarierëve: 0 e kuqe, 1 e verdhë, 2 blu, 3 vjollcë, 4 rozë, 5 kafe (b = sfondi, f = teksti, l = vija) */
+  --c0b: #fbdcd8; --c0f: #9b1c14; --c0l: #e0645a;
+  --c1b: #fcf0b8; --c1f: #7a5b00; --c1l: #d9b300;
+  --c2b: #d9e8fb; --c2f: #174f9c; --c2l: #5a93e0;
+  --c3b: #eadcfa; --c3f: #5b2b9c; --c3l: #a878e0;
+  --c4b: #fbdcec; --c4f: #9c1c63; --c4l: #e060a0;
+  --c5b: #eadfd3; --c5f: #5e3b1c; --c5l: #a67c52;
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #171513; --surface: #221f1c; --fg: #f1ede6; --muted: #a39b90; --line: #38332d;
+    --free: #16301f; --free-fg: #7fd69a; --busy: #3a2a12; --busy-fg: #f0b867; --busy-line: #a86d1f;
+    --accent: #e0643f; --accent-fg: #1a0a04; --sel: #f1ede6; color-scheme: dark;
+  --occ: #4a1f1c; --occ-fg: #ff9a90; --occ-line: #c0453b;
+  --c0b: #4a1f1c; --c0f: #ff9a90; --c0l: #c0453b;
+  --c1b: #473a0a; --c1f: #f5d54a; --c1l: #b8970f;
+  --c2b: #14304f; --c2f: #8fbcff; --c2l: #3b72c4;
+  --c3b: #33214f; --c3f: #cfa8ff; --c3l: #7b4fc0;
+  --c4b: #4a1d36; --c4f: #ff9fcf; --c4l: #c0467f;
+  --c5b: #3b2d20; --c5f: #d9b38c; --c5l: #8a6a47;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #171513; --surface: #221f1c; --fg: #f1ede6; --muted: #a39b90; --line: #38332d;
+  --free: #16301f; --free-fg: #7fd69a; --busy: #3a2a12; --busy-fg: #f0b867; --busy-line: #a86d1f;
+  --accent: #e0643f; --accent-fg: #1a0a04; --sel: #f1ede6; color-scheme: dark;
+  --occ: #4a1f1c; --occ-fg: #ff9a90; --occ-line: #c0453b;
+  --c0b: #4a1f1c; --c0f: #ff9a90; --c0l: #c0453b;
+  --c1b: #473a0a; --c1f: #f5d54a; --c1l: #b8970f;
+  --c2b: #14304f; --c2f: #8fbcff; --c2l: #3b72c4;
+  --c3b: #33214f; --c3f: #cfa8ff; --c3l: #7b4fc0;
+  --c4b: #4a1d36; --c4f: #ff9fcf; --c4l: #c0467f;
+  --c5b: #3b2d20; --c5f: #d9b38c; --c5l: #8a6a47;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 16px; line-height: 1.45;
+  padding-block: 16px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+h1, h2, h3 { font-family: var(--font-display); margin: 0; text-wrap: balance; }
+h1 { font-size: 22px; } h2 { font-size: 18px; } h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 500; }
+button { font: inherit; cursor: pointer; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); min-height: 44px; padding: 0 14px; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+input[type="text"], input[type="number"], input[type="password"], select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; height: 44px; padding: 0 10px; width: 100%; min-width: 0; }
+
+.top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.day { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; flex-wrap: wrap; }
+.day b { color: var(--fg); font-family: var(--font-display); font-size: 18px; }
+.day button { min-height: 36px; font-size: 13px; }
+
+.tables { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.tbl { display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 6px; min-height: 92px; padding: 10px 12px; text-align: left; background: var(--free); color: var(--free-fg); border: 2px solid transparent; }
+.tbl .n { font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: 1; }
+.tbl .s { font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.tbl.busy { background: var(--occ); color: var(--occ-fg); border-color: var(--occ-line); }
+.tbl.busy.c0 { background: var(--c0b); color: var(--c0f); border-color: var(--c0l); }
+.tbl.busy.c1 { background: var(--c1b); color: var(--c1f); border-color: var(--c1l); }
+.tbl.busy.c2 { background: var(--c2b); color: var(--c2f); border-color: var(--c2l); }
+.tbl.busy.c3 { background: var(--c3b); color: var(--c3f); border-color: var(--c3l); }
+.tbl.busy.c4 { background: var(--c4b); color: var(--c4f); border-color: var(--c4l); }
+.tbl.busy.c5 { background: var(--c5b); color: var(--c5f); border-color: var(--c5l); }
+.cdot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; vertical-align: -1px; }
+.cdot.c0 { background: var(--c0l); } .cdot.c1 { background: var(--c1l); } .cdot.c2 { background: var(--c2l); }
+.cdot.c3 { background: var(--c3l); } .cdot.c4 { background: var(--c4l); } .cdot.c5 { background: var(--c5l); }
+.tbl.sel { border-color: var(--sel); box-shadow: 0 0 0 2px var(--sel); }
+@media (max-width: 640px) { .tables { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.panel { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 760px) { .panel { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; min-width: 0; }
+.card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.tabs button { min-height: 52px; font-size: 17px; font-weight: 600; }
+.tabs button.on { background: var(--sel); color: var(--bg); border-color: var(--sel); }
+.cat { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+.cat:first-of-type { margin-top: 0; }
+.menu { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+.dish { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 64px; padding: 8px 10px; text-align: left; }
+.dish .dn { font-weight: 500; line-height: 1.2; overflow-wrap: anywhere; }
+.dish .dp { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.dish:active { background: var(--busy); }
+
+.lines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.line { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+.line:first-child { border-top: 0; }
+.line .ln { overflow-wrap: anywhere; }
+.line .lp { font-variant-numeric: tabular-nums; font-weight: 600; min-width: 64px; text-align: right; }
+.qty { display: flex; align-items: center; gap: 4px; }
+.qty button { width: 38px; min-height: 38px; padding: 0; font-size: 18px; }
+.qty span { min-width: 22px; text-align: center; font-variant-numeric: tabular-nums; font-weight: 600; }
+.empty { color: var(--muted); font-size: 14px; margin: 0; }
+.total { display: flex; justify-content: space-between; align-items: baseline; margin-top: 12px; padding-top: 12px; border-top: 2px solid var(--fg); font-family: var(--font-display); font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.actions button { flex: 1 1 120px; }
+.hint { color: var(--muted); font-size: 14px; margin: 0; }
+
+.receipt { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 14px; }
+.receipt .rt { text-align: center; font-weight: 700; font-size: 16px; }
+.receipt .rs { text-align: center; color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+.receipt .rl { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; font-variant-numeric: tabular-nums; }
+.receipt .rl span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.receipt hr { border: 0; border-top: 1px dashed var(--muted); margin: 8px 0; }
+.receipt .rtot { font-weight: 700; font-size: 18px; }
+
+details.edit summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
+.editrow { display: grid; grid-template-columns: minmax(0, 1fr) 90px 42px; gap: 6px; margin-top: 6px; }
+.addrow { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.addrow .two { display: grid; grid-template-columns: minmax(0, 1fr) 90px; gap: 6px; }
+.rrow { display: grid; grid-template-columns: minmax(0, 1fr) 56px 90px; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.rrow.h { color: var(--muted); font-size: 13px; border-top: 0; text-transform: uppercase; letter-spacing: 0.05em; }
+.rrow span:nth-child(2), .rrow span:nth-child(3) { text-align: right; }
+.rrow span:first-child { overflow-wrap: anywhere; }
+.rtotal { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-top: 8px; padding-top: 12px; border-top: 2px solid var(--fg); font-family: var(--font-display); font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.warn { margin: 0 0 12px; padding: 8px 10px; border-radius: 8px; background: var(--busy); color: var(--busy-fg); font-size: 14px; }
+.pay { margin-top: 14px; padding: 12px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+.pay label { font-weight: 600; font-size: 14px; }
+.pay input { font-size: 20px; font-variant-numeric: tabular-nums; height: 50px; }
+.quick { display: flex; flex-wrap: wrap; gap: 6px; }
+.quick button { flex: 1 1 52px; min-height: 42px; padding: 0 8px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.change { font-family: var(--font-display); font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--muted); }
+.change.ok { color: var(--free-fg); }
+.change.bad { color: var(--accent); }
+.bill { border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-top: 10px; }
+.bhead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.brow { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; font-variant-numeric: tabular-nums; }
+.brow span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.brow.t { font-weight: 700; border-top: 1px dashed var(--muted); margin-top: 6px; padding-top: 6px; }
+.brow.ch { font-weight: 600; color: var(--free-fg); }
+.bill .tabs { margin: 10px 0 0; }
+.bill .tabs button { min-height: 44px; font-size: 15px; }
+.abody { margin-top: 10px; }
+.abody .bill { background: var(--bg); }
+.pinform { display: flex; flex-direction: column; gap: 8px; max-width: 360px; }
+.pinform input { font-size: 20px; letter-spacing: 0.2em; height: 50px; }
+.pinerr { margin: 0; min-height: 1.2em; color: var(--accent); font-size: 14px; font-weight: 600; }
+.wbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.wbar .wl { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.wbar .warn { flex-basis: 100%; margin: 0; }
+.tbl .w { font-size: 12px; opacity: 0.85; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tbl.other { opacity: 0.8; }
+.ticket { background: var(--bg); border: 1px dashed var(--muted); border-radius: 8px; padding: 14px; }
+.ticket .rt { font-size: 22px; letter-spacing: 0.1em; }
+.ticket .rl { font-size: 20px; font-weight: 700; padding: 5px 0; }
+.wsum, .wadmin { margin-top: 18px; }
+.wbtn { width: 100%; font: inherit; color: inherit; background: none; border: 0; border-top: 1px solid var(--line); border-radius: 0; text-align: left; min-height: 44px; align-items: center; cursor: pointer; padding: 8px 0; }
+.wbtn:hover { background: var(--bg); }
+.wdetail { background: var(--bg); border-radius: 8px; padding: 4px 10px 8px; margin: 0 0 6px; }
+.wdetail .rrow { padding: 6px 0; }
+.wrow2 { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); }
+.wrow2 button { min-height: 40px; }
+.wform { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin-top: 10px; }
+.wform button, .wform p { grid-column: 1 / -1; }
+@media (max-width: 480px) { .wform { grid-template-columns: minmax(0, 1fr); } }
+.foot { color: var(--muted); font-size: 12px; text-align: center; margin: 0; }
+</style>
+
+<main class="wrap">
+  <header class="top">
+    <h1>Faturimi i Restorantit</h1>
+    <div class="day">
+      <span><span id="shiftLabel">Ndrimi 1</span> · shitjet: <b id="dayTotal">0,00 €</b></span>
+      <span id="dayCount"></span>
+      <button type="button" id="openReport">Mbyll ditën</button>
+      <button type="button" id="openBills">Faturat</button>
+      <button type="button" id="openArchive">Raportet e ruajtura</button>
+    </div>
+  </header>
+
+  <section class="card" id="billsList" aria-label="Faturat e ditës" hidden></section>
+  <section class="card" id="archive" aria-label="Raportet e ruajtura" hidden></section>
+
+  <div class="wbar" id="wbar"></div>
+
+  <section class="card" id="pinBox" aria-label="Kodi" hidden>
+    <form id="pinForm" class="pinform">
+      <h2 id="pinTitle">Fut kodin e pronarit</h2>
+      <p class="hint" id="pinHint"></p>
+      <input type="password" id="pinInput" inputmode="numeric" autocomplete="off" placeholder="Kodi" aria-label="Kodi">
+      <input type="password" id="pinInput2" inputmode="numeric" autocomplete="off" placeholder="Përsërite kodin" aria-label="Përsërite kodin" hidden>
+      <p class="pinerr" id="pinErr" role="alert"></p>
+      <div class="actions"><button type="submit" class="primary" id="pinOk">Hap</button><button type="button" id="pinCancel">Anulo</button></div>
+    </form>
+  </section>
+
+  <section class="card" id="report" aria-label="Raporti ditor" hidden></section>
+
+  <section aria-label="Tavolinat"><div class="tables" id="tables"></div></section>
+
+  <section class="panel" id="panel">
+    <div class="card" id="menuCard">
+      <div class="card-head"><h2 id="menuTitle">Menuja</h2></div>
+      <div id="menu"></div>
+    </div>
+    <div class="card" id="billCard"></div>
+  </section>
+
+  <section class="card">
+    <details class="edit">
+      <summary>Ndrysho menunë dhe çmimet</summary>
+      <div id="editList"></div>
+      <form class="addrow" id="addDish">
+        <input type="text" id="dName" placeholder="Emri i ushqimit ose pijes" aria-label="Emri">
+        <div class="two">
+          <select id="dCat" aria-label="Kategoria"><option value="Ushqim">Ushqim</option><option value="Pije">Pije</option></select>
+          <input type="number" id="dPrice" step="0.05" min="0" inputmode="decimal" placeholder="Çmimi" aria-label="Çmimi">
+        </div>
+        <button type="submit" class="primary">Shto në menu</button>
+      </form>
+    </details>
+  </section>
+
+  <p class="foot">Të dhënat ruhen vetëm në këtë pajisje dhe këtë shfletues.</p>
+</main>
+
+<script>
+(function () {
+  var KEY = 'restoranti-v1', N = 10;
+  var $ = function (i) { return document.getElementById(i); };
+
+  var MENU0 = [
+    ['Ushqim', 'Pica Margarita', 6], ['Ushqim', 'Pica Capricciosa', 7.5], ['Ushqim', 'Qebapa (10 copë)', 5],
+    ['Ushqim', 'Burger', 6.5], ['Ushqim', 'Pasta Carbonara', 6], ['Ushqim', 'Sallatë e përzier', 3.5],
+    ['Pije', 'Ujë', 1], ['Pije', 'Coca-Cola', 1.8], ['Pije', 'Birrë', 2], ['Pije', 'Lëng portokalli', 2.5],
+    ['Kafe', 'Espresso', 1], ['Kafe', 'Makiato', 1.2], ['Kafe', 'Kapuçino', 1.5],
+    ['Ëmbëlsirë', 'Tiramisu', 3.5], ['Ëmbëlsirë', 'Bakllava', 2.5]
+  ];
+  var uid = 0;
+  function nid() { uid++; return 'm' + Date.now().toString(36) + uid; }
+
+  var S = null;
+  try { var r = JSON.parse(localStorage.getItem(KEY)); if (r && Array.isArray(r.menu) && r.orders) S = r; } catch (e) {}
+  if (!S) S = { menu: MENU0.map(function (m) { return { id: nid(), cat: m[0], name: m[1], price: m[2] }; }), orders: {}, day: { total: 0, count: 0 } };
+  if (!S.day) S.day = { total: 0, count: 0 };
+  if (!S.day.items) S.day.items = {};
+  if (!S.day.bills) S.day.bills = [];
+  if (!Array.isArray(S.history)) S.history = [];
+  if (!Array.isArray(S.waiters)) S.waiters = [];
+  if (!S.owners) S.owners = {};
+  S.waiters.forEach(function (w, i) { if (w.color == null) w.color = i % 6; });
+
+  // Dita dhe ndrimet: raporti përfundon me dorë (ndrimi tjetër fillon vetë), dita e re fillon vetë kur ndërron data
+  function keyOf(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  if (!S.day.dateKey) S.day.dateKey = keyOf(new Date(S.day.started || Date.now()));
+  if (!S.day.shift) S.day.shift = 1;
+  function rollover() {
+    var tk = keyOf(new Date());
+    if (S.day.dateKey === tk) return false;
+    if (S.day.count > 0 || S.day.bills.length > 0) {
+      S.history.push({
+        id: nid(), date: new Date(S.day.dateKey + 'T12:00:00').toISOString(), dateKey: S.day.dateKey, shift: S.day.shift,
+        total: S.day.total, count: S.day.count, items: S.day.items, bills: S.day.bills
+      });
+    }
+    S.day = { total: 0, count: 0, items: {}, bills: [], started: new Date().toISOString(), dateKey: tk, shift: 1 };
+    save();
+    return true;
+  }
+  rollover();
+  if (!S.day.started) S.day.started = new Date().toISOString();
+  // Menuja ka vetëm dy kategori: Ushqim dhe Pije (kafetë futen te Pije, ëmbëlsirat te Ushqim)
+  S.menu.forEach(function (d) { d.cat = (d.cat === 'Pije' || d.cat === 'Kafe') ? 'Pije' : 'Ushqim'; });
+  var activeCat = 'Ushqim', editCat = 'Ushqim', kitchen = null, curW = null, wNote = '', wDel = null, wDelTimer = null, sel = null, receipt = null, confirmReset = false, resetTimer = null;
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+
+  function eur(n) { var v = Math.round(n * 100) / 100, s; try { s = v.toLocaleString('sq', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); } catch (e) { s = v.toFixed(2); } return s + ' €'; }
+  function lines(t) { return S.orders[t] || []; }
+  function sum(t) { return lines(t).reduce(function (s, l) { return s + l.price * l.qty; }, 0); }
+  function count(t) { return lines(t).reduce(function (s, l) { return s + l.qty; }, 0); }
+  function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
+
+  function renderTables() {
+    var box = $('tables'); box.innerHTML = '';
+    for (var t = 1; t <= N; t++) (function (t) {
+      var busy = count(t) > 0;
+      var o = ownerOf(t), other = !!(o && curW && o.id !== curW.id);
+      var b = el('button', 'tbl' + (busy ? ' busy' : '') + (sel === t ? ' sel' : '') + (other ? ' other' : '') + (busy && o ? ' c' + waiterColor(o) : ''));
+      b.type = 'button';
+      b.appendChild(el('span', 'n', String(t)));
+      b.appendChild(el('span', 's', busy ? eur(sum(t)) : 'E lirë'));
+      if (busy && o) b.appendChild(el('span', 'w', o.name));
+      b.setAttribute('aria-label', 'Tavolina ' + t + (busy ? ', ' + eur(sum(t)) : ', e lirë'));
+      b.onclick = function () {
+        if (!curW) { showPinBox('waiter', { table: t }); return; }
+        tryTable(t);
+      };
+      box.appendChild(b);
+    })(t);
+  }
+
+  function renderMenu() {
+    var m = $('menu'); m.innerHTML = '';
+    $('menuTitle').textContent = sel ? 'Menuja → Tavolina ' + sel : 'Menuja';
+    var tabs = el('div', 'tabs');
+    ['Ushqim', 'Pije'].forEach(function (c) {
+      var tb = el('button', c === activeCat ? 'on' : '', c); tb.type = 'button';
+      tb.setAttribute('aria-pressed', c === activeCat ? 'true' : 'false');
+      tb.onclick = function () { activeCat = c; renderMenu(); };
+      tabs.appendChild(tb);
+    });
+    m.appendChild(tabs);
+    var cats = [activeCat];
+    cats.forEach(function (c) {
+      var wrap = el('div', 'cat');
+      var grid = el('div', 'menu');
+      S.menu.filter(function (d) { return d.cat === c; }).forEach(function (d) {
+        var b = el('button', 'dish'); b.type = 'button';
+        b.appendChild(el('span', 'dn', d.name)); b.appendChild(el('span', 'dp', eur(d.price)));
+        b.disabled = !sel || !!receipt;
+        b.onclick = function () { addItem(d); };
+        grid.appendChild(b);
+      });
+      wrap.appendChild(grid); m.appendChild(wrap);
+    });
+    if (!sel) { var h = el('p', 'hint', 'Prek një tavolinë sipër për të filluar porosinë.'); h.style.marginBottom = '12px'; m.insertBefore(h, m.firstChild); }
+  }
+
+  function addItem(d) {
+    if (!curW) return;
+    if (count(sel) === 0) S.owners[sel] = { id: curW.id, name: curW.name };
+    var ls = S.orders[sel] = lines(sel);
+    var f = ls.filter(function (l) { return l.id === d.id; })[0];
+    kitchen = null;
+    if (f) f.qty++; else ls.push({ id: d.id, name: d.name, price: d.price, qty: 1, cat: d.cat });
+    save(); render();
+  }
+
+  function renderBill() {
+    var c = $('billCard'); c.innerHTML = '';
+    if (!sel) { c.appendChild(el('h2', null, 'Fatura')); var p = el('p', 'hint', 'Asnjë tavolinë e zgjedhur.'); p.style.marginTop = '8px'; c.appendChild(p); return; }
+
+    if (receipt) {
+      var rc = el('div', 'receipt');
+      rc.appendChild(el('div', 'rt', 'FATURA'));
+      rc.appendChild(el('div', 'rs', 'Tavolina ' + receipt.table + ' · ' + receipt.time));
+      receipt.lines.forEach(function (l) {
+        var row = el('div', 'rl'); row.appendChild(el('span', null, l.qty + ' x ' + l.name)); row.appendChild(el('span', null, eur(l.qty * l.price))); rc.appendChild(row);
+      });
+      rc.appendChild(el('hr'));
+      var tr = el('div', 'rl rtot'); tr.appendChild(el('span', null, 'TOTALI')); tr.appendChild(el('span', null, eur(receipt.total))); rc.appendChild(tr);
+      c.appendChild(rc);
+
+      var pay = el('div', 'pay');
+      var lab = el('label', null, 'Klienti jep'); lab.htmlFor = 'given';
+      var inp = el('input'); inp.type = 'number'; inp.id = 'given'; inp.step = 'any'; inp.min = '0'; inp.inputMode = 'decimal'; inp.placeholder = '0,00';
+      var chg = el('div', 'change');
+      function showChange() {
+        var g = parseFloat(String(inp.value).replace(',', '.'));
+        g = isFinite(g) ? g : 0;
+        receipt.given = g;
+        var diff = Math.round((g - receipt.total) * 100) / 100;
+        if (g <= 0) { chg.className = 'change'; chg.textContent = 'Shkruaj sa para jep klienti.'; chg.style.fontSize = '15px'; return; }
+        chg.style.fontSize = '';
+        if (diff >= 0) { chg.className = 'change ok'; chg.textContent = 'Kusuri: ' + eur(diff); }
+        else { chg.className = 'change bad'; chg.textContent = 'Mungojnë: ' + eur(-diff); }
+      }
+      inp.oninput = showChange;
+      var quick = el('div', 'quick');
+      var exact = el('button', null, 'Saktë'); exact.type = 'button';
+      exact.onclick = function () { inp.value = Math.round(receipt.total * 100) / 100; showChange(); };
+      quick.appendChild(exact);
+      [5, 10, 20, 50, 100].forEach(function (v) {
+        var qb = el('button', null, String(v)); qb.type = 'button';
+        qb.onclick = function () { inp.value = v; showChange(); };
+        quick.appendChild(qb);
+      });
+      pay.appendChild(lab); pay.appendChild(inp); pay.appendChild(quick); pay.appendChild(chg);
+      c.appendChild(pay);
+      showChange();
+      var a = el('div', 'actions');
+      var ok = el('button', 'primary', 'U faturua, mbyll tavolinën'); ok.type = 'button';
+      ok.onclick = function () {
+        receipt.lines.forEach(function (l) {
+          var key = l.name + '|' + l.price;
+          var it = S.day.items[key] || (S.day.items[key] = { name: l.name, price: l.price, qty: 0, total: 0 });
+          it.qty += l.qty; it.total += l.qty * l.price;
+        });
+        var given = receipt.given > 0 ? receipt.given : 0;
+        S.day.bills.push({
+          no: S.day.bills.length + 1, table: receipt.table, time: receipt.time,
+          lines: receipt.lines, total: receipt.total, given: given,
+          wid: curW ? curW.id : '', wname: curW ? curW.name : '',
+          change: given >= receipt.total ? Math.round((given - receipt.total) * 100) / 100 : 0
+        });
+        S.day.total += receipt.total; S.day.count += 1; delete S.orders[receipt.table]; receipt = null; save(); render(); };
+      var back = el('button', null, 'Kthehu te porosia'); back.type = 'button';
+      back.onclick = function () { receipt = null; render(); };
+      a.appendChild(ok); a.appendChild(back); c.appendChild(a);
+      return;
+    }
+
+    if (kitchen) {
+      var kt = el('div', 'receipt ticket');
+      kt.appendChild(el('div', 'rt', 'KUZHINA'));
+      kt.appendChild(el('div', 'rs', 'Tavolina ' + kitchen.table + (kitchen.waiter ? ' · ' + kitchen.waiter : '') + ' · ' + kitchen.time));
+      kt.appendChild(el('hr'));
+      kitchen.lines.forEach(function (l) { var kr = el('div', 'rl'); kr.appendChild(el('span', null, l.qty + ' x ' + l.name)); kt.appendChild(kr); });
+      c.appendChild(kt);
+      var ka = el('div', 'actions');
+      var kc = el('button', 'primary', 'Kopjo tekstin'); kc.type = 'button';
+      kc.onclick = function () {
+        var txt = 'KUZHINA\nTavolina ' + kitchen.table + (kitchen.waiter ? ' - ' + kitchen.waiter : '') + ' - ' + kitchen.time + '\n' +
+          kitchen.lines.map(function (l) { return l.qty + ' x ' + l.name; }).join('\n');
+        var done = function (ok) { kc.textContent = ok ? 'U kopjua' : 'Nuk u kopjua, bëj screenshot'; };
+        try { navigator.clipboard.writeText(txt).then(function () { done(true); }, function () { done(false); }); } catch (e) { done(false); }
+      };
+      var kx = el('button', null, 'Kthehu te porosia'); kx.type = 'button';
+      kx.onclick = function () { kitchen = null; render(); };
+      ka.appendChild(kc); ka.appendChild(kx); c.appendChild(ka);
+      var kh = el('p', 'hint', 'Kjo faqe nuk e printon drejtpërdrejt. Kopjoje tekstin ose bëj screenshot dhe dërgoje te printeri i kuzhinës.');
+      kh.style.marginTop = '10px'; c.appendChild(kh);
+      return;
+    }
+
+    var head = el('div', 'card-head'); head.appendChild(el('h2', null, 'Tavolina ' + sel)); c.appendChild(head);
+    var ls = lines(sel);
+    if (!ls.length) { c.appendChild(el('p', 'empty', 'Asnjë porosi ende. Prek ushqimet në menu.')); }
+    var ul = el('ul', 'lines');
+    ls.forEach(function (l) {
+      var li = el('li', 'line');
+      li.appendChild(el('span', 'ln', l.name));
+      var q = el('div', 'qty');
+      var m = el('button', null, '−'); m.type = 'button'; m.setAttribute('aria-label', 'Hiq një ' + l.name);
+      m.onclick = function () { l.qty--; if (l.qty <= 0) S.orders[sel] = lines(sel).filter(function (x) { return x !== l; }); save(); render(); };
+      var pl = el('button', null, '+'); pl.type = 'button'; pl.setAttribute('aria-label', 'Shto një ' + l.name);
+      pl.onclick = function () { l.qty++; save(); render(); };
+      q.appendChild(m); q.appendChild(el('span', null, String(l.qty))); q.appendChild(pl);
+      li.appendChild(q); li.appendChild(el('span', 'lp', eur(l.price * l.qty)));
+      ul.appendChild(li);
+    });
+    c.appendChild(ul);
+    var tot = el('div', 'total'); tot.appendChild(el('span', null, 'Totali')); tot.appendChild(el('span', null, eur(sum(sel)))); c.appendChild(tot);
+
+    var a2 = el('div', 'actions');
+    var bill = el('button', 'primary', 'Faturo'); bill.type = 'button'; bill.disabled = !ls.length;
+    bill.onclick = function () {
+      var n = new Date();
+      receipt = { table: sel, lines: lines(sel).map(function (l) { return { name: l.name, price: l.price, qty: l.qty }; }), total: sum(sel), time: n.toLocaleDateString('sq') + ' ' + ('0' + n.getHours()).slice(-2) + ':' + ('0' + n.getMinutes()).slice(-2) };
+      render();
+    };
+    var clr = el('button', null, 'Pastro tavolinën'); clr.type = 'button'; clr.disabled = !ls.length;
+    clr.onclick = function () { delete S.orders[sel]; save(); render(); };
+    var food = ls.filter(isFood);
+    var kb = el('button', null, 'Dërgo në kuzhinë'); kb.type = 'button'; kb.disabled = !food.length;
+    kb.onclick = function () {
+      var n = new Date();
+      kitchen = {
+        table: sel, waiter: curW ? curW.name : '',
+        lines: food.map(function (l) { return { name: l.name, qty: l.qty }; }),
+        time: ('0' + n.getHours()).slice(-2) + ':' + ('0' + n.getMinutes()).slice(-2)
+      };
+      render();
+    };
+    a2.appendChild(bill); a2.appendChild(kb); a2.appendChild(clr); c.appendChild(a2);
+  }
+
+  function renderEdit() {
+    var box = $('editList'); box.innerHTML = '';
+    var etabs = el('div', 'tabs');
+    ['Ushqim', 'Pije'].forEach(function (c) {
+      var tb = el('button', c === editCat ? 'on' : '', c); tb.type = 'button';
+      tb.setAttribute('aria-pressed', c === editCat ? 'true' : 'false');
+      tb.onclick = function () { editCat = c; $('dCat').value = c; renderEdit(); };
+      etabs.appendChild(tb);
+    });
+    box.appendChild(etabs);
+    S.menu.filter(function (d) { return d.cat === editCat; }).forEach(function (d) {
+      var row = el('div', 'editrow');
+      var n = el('input'); n.type = 'text'; n.value = d.name; n.id = 'en-' + d.id; n.setAttribute('aria-label', 'Emri');
+      n.oninput = function () { d.name = n.value; save(); renderMenu(); };
+      var p = el('input'); p.type = 'number'; p.step = '0.05'; p.min = '0'; p.inputMode = 'decimal'; p.value = d.price; p.id = 'ep-' + d.id; p.setAttribute('aria-label', 'Çmimi');
+      p.oninput = function () { var v = parseFloat(String(p.value).replace(',', '.')); d.price = isFinite(v) ? v : 0; save(); renderMenu(); };
+      var x = el('button', null, '×'); x.type = 'button'; x.style.padding = '0'; x.setAttribute('aria-label', 'Hiq ' + d.name);
+      x.onclick = function () { S.menu = S.menu.filter(function (m) { return m !== d; }); save(); renderEdit(); renderMenu(); };
+      row.appendChild(n); row.appendChild(p); row.appendChild(x); box.appendChild(row);
+    });
+  }
+
+  function renderDay() {
+    $('dayTotal').textContent = eur(S.day.total);
+    $('shiftLabel').textContent = 'Ndrimi ' + S.day.shift;
+    $('dayCount').textContent = S.day.count + (S.day.count === 1 ? ' faturë' : ' fatura');
+  }
+
+  var showReport = false;
+  function renderReport() {
+    var c = $('report'); c.hidden = !showReport;
+    if (!showReport) return;
+    c.innerHTML = '';
+    var head = el('div', 'card-head');
+    head.appendChild(el('h2', null, 'Raporti ditor · Ndrimi ' + S.day.shift));
+    head.appendChild(el('span', 'hint', new Date().toLocaleDateString('sq')));
+    c.appendChild(head);
+
+    var open = 0; for (var t = 1; t <= N; t++) if (count(t) > 0) open++;
+    if (open) c.appendChild(el('p', 'warn', open + (open === 1 ? ' tavolinë ka' : ' tavolina kanë') + ' porosi të pafaturuara. Ato nuk futen në raport.'));
+
+    var items = Object.keys(S.day.items).map(function (k) { return S.day.items[k]; }).sort(function (a, b) { return b.qty - a.qty; });
+    if (!items.length) {
+      c.appendChild(el('p', 'empty', 'Ende nuk ka shitje në raport.'));
+    } else {
+      var h = el('div', 'rrow h');
+      h.appendChild(el('span', null, 'Artikulli')); h.appendChild(el('span', null, 'Copë')); h.appendChild(el('span', null, 'Shuma'));
+      c.appendChild(h);
+      items.forEach(function (it) {
+        var r = el('div', 'rrow');
+        r.appendChild(el('span', null, it.name)); r.appendChild(el('span', null, String(it.qty))); r.appendChild(el('span', null, eur(it.total)));
+        c.appendChild(r);
+      });
+    }
+    var pieces = items.reduce(function (s, i) { return s + i.qty; }, 0);
+    var tot = el('div', 'rtotal'); tot.appendChild(el('span', null, 'Pazari ditor')); tot.appendChild(el('span', null, eur(S.day.total)));
+    c.appendChild(tot);
+    c.appendChild(el('p', 'hint', S.day.count + (S.day.count === 1 ? ' faturë' : ' fatura') + ' · ' + pieces + ' artikuj të shitur'));
+    c.appendChild(waiterSummary(S.day.bills, 'day', renderReport));
+    c.appendChild(waitersAdmin());
+
+    var a = el('div', 'actions');
+    var close = el('button', null, 'Mbyll raportin'); close.type = 'button';
+    close.onclick = function () { showReport = false; confirmReset = false; if (!showArchive) unlocked = false; renderReport(); };
+    var del = el('button', null, confirmReset ? 'Sigurt? Fshij raportin' : 'Fshi raportin'); del.type = 'button';
+    if (confirmReset) del.className = 'primary';
+    del.onclick = function () {
+      if (!confirmReset) { confirmReset = true; renderReport(); clearTimeout(resetTimer); resetTimer = setTimeout(function () { confirmReset = false; renderReport(); }, 4000); return; }
+      clearTimeout(resetTimer); confirmReset = false;
+      S.day = { total: 0, count: 0, items: {}, bills: [], started: new Date().toISOString(), dateKey: S.day.dateKey, shift: S.day.shift };
+      save(); render();
+    };
+    var keep = el('button', 'primary', 'Përfundo raportin'); keep.type = 'button'; keep.disabled = !S.day.count;
+    keep.onclick = function () {
+      var id = nid();
+      S.history.push({ id: id, date: new Date().toISOString(), dateKey: S.day.dateKey, shift: S.day.shift, total: S.day.total, count: S.day.count, items: S.day.items, bills: S.day.bills });
+      S.day = { total: 0, count: 0, items: {}, bills: [], started: new Date().toISOString(), dateKey: S.day.dateKey, shift: S.day.shift + 1 };
+      showReport = false; showBills = false; showArchive = true; archView[id] = 'report'; confirmReset = false;
+      save(); render();
+      if ($('archive').scrollIntoView) $('archive').scrollIntoView({ block: 'start' });
+    };
+    var chpin = el('button', null, 'Ndrysho kodin'); chpin.type = 'button';
+    chpin.onclick = function () { showPinBox('change'); };
+    a.appendChild(keep); a.appendChild(close); a.appendChild(del); a.appendChild(chpin); c.appendChild(a);
+    c.appendChild(el('p', 'hint', '"Përfundo raportin" e ruan këtë ndrim te "Raportet e ruajtura" me faturat e tij dhe fillon vetë raportin e ri të së njëjtës ditë. Dita e re fillon vetë kur ndërron data. Raporti i ruajtur fshihet vetëm kur ti e fshin.'));
+  }
+
+  var showBills = false;
+  function renderBills() {
+    var c = $('billsList'); c.hidden = !showBills;
+    if (!showBills) return;
+    c.innerHTML = '';
+    var head = el('div', 'card-head');
+    var mine = curW ? S.day.bills.filter(function (b) { return b.wid === curW.id; }) : [];
+    head.appendChild(el('h2', null, 'Faturat e mia' + (curW ? ' · ' + curW.name : '')));
+    head.appendChild(el('span', 'hint', mine.length + (mine.length === 1 ? ' faturë' : ' fatura')));
+    c.appendChild(head);
+    if (!mine.length) c.appendChild(el('p', 'empty', 'Ende nuk ke fatura sot. Shfaqen këtu kur shtyp "U faturua".'));
+    function row(cls, a, b) { var r = el('div', 'brow ' + cls); r.appendChild(el('span', null, a)); r.appendChild(el('span', null, b)); return r; }
+    mine.slice().reverse().forEach(function (b) {
+      var box = el('div', 'bill');
+      var h = el('div', 'bhead'); h.appendChild(el('b', null, 'Fatura #' + b.no + ' · Tavolina ' + b.table)); h.appendChild(el('span', 'hint', b.time)); box.appendChild(h);
+      b.lines.forEach(function (l) { box.appendChild(row('', l.qty + ' x ' + l.name, eur(l.qty * l.price))); });
+      box.appendChild(row('t', 'Totali', eur(b.total)));
+      if (b.given > 0) {
+        box.appendChild(row('', 'Klienti dha', eur(b.given)));
+        box.appendChild(row('ch', 'Kusuri', eur(b.change)));
+      } else {
+        box.appendChild(row('', 'Klienti dha', 'nuk u shënua'));
+      }
+      c.appendChild(box);
+    });
+    var a = el('div', 'actions');
+    var close = el('button', null, 'Mbyll listën'); close.type = 'button';
+    close.onclick = function () { showBills = false; renderBills(); };
+    a.appendChild(close); c.appendChild(a);
+    c.appendChild(el('p', 'hint', 'Këtu shfaqen vetëm faturat e tua. Faturat e të gjithë kamarierëve i sheh vetëm pronari te raportet.'));
+  }
+
+  var showArchive = false, archView = {}, archDel = null, archDelTimer = null;
+  var WD = ['E diel', 'E hënë', 'E martë', 'E mërkurë', 'E enjte', 'E premte', 'E shtunë'];
+  var MN = ['janar', 'shkurt', 'mars', 'prill', 'maj', 'qershor', 'korrik', 'gusht', 'shtator', 'tetor', 'nëntor', 'dhjetor'];
+  function dayStr(dt) { return WD[dt.getDay()] + ', ' + dt.getDate() + ' ' + MN[dt.getMonth()] + ' ' + dt.getFullYear(); }
+
+  function renderArchive() {
+    var c = $('archive'); c.hidden = !showArchive;
+    if (!showArchive) return;
+    c.innerHTML = '';
+    var head = el('div', 'card-head');
+    head.appendChild(el('h2', null, 'Raportet e ruajtura'));
+    head.appendChild(el('span', 'hint', S.history.length + (S.history.length === 1 ? ' ditë' : ' ditë')));
+    c.appendChild(head);
+    if (!S.history.length) c.appendChild(el('p', 'empty', 'Ende nuk ke raporte të ruajtura. Te "Mbyll ditën" shtyp "Përfundo raportin".'));
+
+    S.history.slice().reverse().forEach(function (d) {
+      var box = el('div', 'bill');
+      var h = el('div', 'bhead');
+      h.appendChild(el('b', null, dayStr(new Date(d.date)) + (d.shift ? ' · Ndrimi ' + d.shift : '')));
+      h.appendChild(el('b', null, eur(d.total)));
+      box.appendChild(h);
+      box.appendChild(el('p', 'hint', d.count + (d.count === 1 ? ' faturë' : ' fatura')));
+
+      var tb = el('div', 'tabs');
+      [['report', 'Raporti'], ['bills', 'Faturat']].forEach(function (p) {
+        var b = el('button', archView[d.id] === p[0] ? 'on' : '', p[1]); b.type = 'button';
+        b.onclick = function () { archView[d.id] = archView[d.id] === p[0] ? null : p[0]; renderArchive(); };
+        tb.appendChild(b);
+      });
+      box.appendChild(tb);
+
+      var body = el('div', 'abody');
+      if (archView[d.id] === 'report') {
+        var items = Object.keys(d.items || {}).map(function (k) { return d.items[k]; }).sort(function (a, b) { return b.qty - a.qty; });
+        var hr = el('div', 'rrow h');
+        hr.appendChild(el('span', null, 'Artikulli')); hr.appendChild(el('span', null, 'Copë')); hr.appendChild(el('span', null, 'Shuma'));
+        body.appendChild(hr);
+        items.forEach(function (it) {
+          var r = el('div', 'rrow');
+          r.appendChild(el('span', null, it.name)); r.appendChild(el('span', null, String(it.qty))); r.appendChild(el('span', null, eur(it.total)));
+          body.appendChild(r);
+        });
+        if (!items.length) body.appendChild(el('p', 'empty', 'Ky raport nuk ka artikuj të regjistruar.'));
+        var tot = el('div', 'rtotal'); tot.appendChild(el('span', null, 'Pazari')); tot.appendChild(el('span', null, eur(d.total)));
+        body.appendChild(tot);
+        body.appendChild(waiterSummary(d.bills || [], d.id, renderArchive));
+      } else if (archView[d.id] === 'bills') {
+        var bl = d.bills || [];
+        if (!bl.length) body.appendChild(el('p', 'empty', 'Ky raport nuk ka fatura të ruajtura.'));
+        bl.slice().reverse().forEach(function (b) {
+          var bb = el('div', 'bill');
+          var bh = el('div', 'bhead'); bh.appendChild(el('b', null, 'Fatura #' + b.no + ' · Tavolina ' + b.table + (b.wname ? ' · ' + b.wname : ''))); bh.appendChild(el('span', 'hint', b.time)); bb.appendChild(bh);
+          function row(cls, x, y) { var r = el('div', 'brow ' + cls); r.appendChild(el('span', null, x)); r.appendChild(el('span', null, y)); return r; }
+          b.lines.forEach(function (l) { bb.appendChild(row('', l.qty + ' x ' + l.name, eur(l.qty * l.price))); });
+          bb.appendChild(row('t', 'Totali', eur(b.total)));
+          if (b.given > 0) { bb.appendChild(row('', 'Klienti dha', eur(b.given))); bb.appendChild(row('ch', 'Kusuri', eur(b.change))); }
+          else bb.appendChild(row('', 'Klienti dha', 'nuk u shënua'));
+          body.appendChild(bb);
+        });
+      }
+      box.appendChild(body);
+
+      var del = el('button', null, archDel === d.id ? 'Sigurt? Fshije këtë raport' : 'Fshi këtë raport'); del.type = 'button'; del.style.marginTop = '10px';
+      if (archDel === d.id) del.className = 'primary';
+      del.onclick = function () {
+        if (archDel !== d.id) {
+          archDel = d.id; clearTimeout(archDelTimer);
+          archDelTimer = setTimeout(function () { archDel = null; renderArchive(); }, 4000);
+          renderArchive(); return;
+        }
+        clearTimeout(archDelTimer); archDel = null;
+        S.history = S.history.filter(function (x) { return x !== d; });
+        save(); renderArchive();
+      };
+      box.appendChild(del);
+      c.appendChild(box);
+    });
+
+    var a = el('div', 'actions');
+    var close = el('button', null, 'Mbyll listën'); close.type = 'button';
+    close.onclick = function () { showArchive = false; if (!showReport) unlocked = false; renderArchive(); };
+    a.appendChild(close); c.appendChild(a);
+  }
+
+  function ownerOf(t) { return count(t) > 0 ? S.owners[t] : null; }
+  function isFood(l) {
+    var c = l.cat;
+    if (!c) { var m = S.menu.filter(function (x) { return x.id === l.id; })[0]; c = m ? m.cat : 'Ushqim'; }
+    return c === 'Ushqim';
+  }
+  function waiterColor(o) {
+    var w = S.waiters.filter(function (x) { return x.id === o.id; })[0];
+    return w && w.color != null ? w.color : 0;
+  }
+  function nextColor() {
+    for (var c = 0; c < 6; c++) if (!S.waiters.some(function (w) { return w.color === c; })) return c;
+    return S.waiters.length % 6;
+  }
+  function tryTable(t) {
+    var o = ownerOf(t);
+    if (o && o.id !== curW.id && S.waiters.some(function (w) { return w.id === o.id; })) {
+      wNote = 'Tavolina ' + t + ' po shërbehet nga ' + o.name + '. Vetëm ai mund ta hapë.';
+      render(); return;
+    }
+    wNote = ''; sel = t; receipt = null; kitchen = null; render();
+    var p = $('panel'); if (window.innerWidth <= 760 && p.scrollIntoView) p.scrollIntoView({ block: 'start' });
+  }
+
+  function renderWbar() {
+    var w = $('wbar'); w.innerHTML = '';
+    var l = el('span', 'wl'); l.appendChild(document.createTextNode('Kamarieri: ')); if (curW) l.appendChild(el('span', 'cdot c' + waiterColor(curW)));
+    l.appendChild(el('b', null, curW ? curW.name : 'nuk ke hyrë'));
+    w.appendChild(l);
+    var b = el('button', curW ? '' : 'primary', curW ? 'Dil' : 'Hyr me kodin'); b.type = 'button';
+    b.onclick = function () {
+      if (curW) { curW = null; sel = null; receipt = null; kitchen = null; wNote = ''; showBills = false; render(); }
+      else showPinBox('waiter', {});
+    };
+    w.appendChild(b);
+    if (wNote) w.appendChild(el('p', 'warn', wNote));
+  }
+
+  var wOpen = {};
+  function waiterSummary(bills, ctx, redraw) {
+    var box = el('div', 'wsum'); box.appendChild(el('h3', null, 'Shitjet sipas kamarierëve'));
+    box.appendChild(el('p', 'hint', 'Prek një kamarier për të parë çfarë artikujsh ka shitur dhe sa copë.'));
+    var map = {};
+    bills.forEach(function (b) {
+      var k = b.wid || 'none';
+      var m = map[k] || (map[k] = { name: b.wname || 'Pa kamarier', n: 0, total: 0 });
+      m.n++; m.total += b.total;
+    });
+    var keys = Object.keys(map).sort(function (a, b) { return map[b].total - map[a].total; });
+    if (!keys.length) { box.appendChild(el('p', 'empty', 'Ende nuk ka shitje.')); return box; }
+    var h = el('div', 'rrow h'); h.appendChild(el('span', null, 'Kamarieri')); h.appendChild(el('span', null, 'Fatura')); h.appendChild(el('span', null, 'Shuma')); box.appendChild(h);
+    keys.forEach(function (k) {
+      var m = map[k], id = ctx + '|' + k, open = !!wOpen[id];
+      var r = el('button', 'rrow wbtn'); r.type = 'button'; r.setAttribute('aria-expanded', open ? 'true' : 'false');
+      r.appendChild(el('span', null, (open ? '▾ ' : '▸ ') + m.name)); r.appendChild(el('span', null, String(m.n))); r.appendChild(el('span', null, eur(m.total)));
+      r.onclick = function () { wOpen[id] = !open; redraw(); };
+      box.appendChild(r);
+      if (open) {
+        var items = {};
+        bills.forEach(function (b) {
+          if ((b.wid || 'none') !== k) return;
+          b.lines.forEach(function (l) {
+            var key = l.name + '|' + l.price;
+            var it = items[key] || (items[key] = { name: l.name, qty: 0, total: 0 });
+            it.qty += l.qty; it.total += l.qty * l.price;
+          });
+        });
+        var list = Object.keys(items).map(function (x) { return items[x]; }).sort(function (a, b) { return b.qty - a.qty; });
+        var det = el('div', 'wdetail');
+        var dh = el('div', 'rrow h'); dh.appendChild(el('span', null, 'Artikulli')); dh.appendChild(el('span', null, 'Copë')); dh.appendChild(el('span', null, 'Shuma')); det.appendChild(dh);
+        list.forEach(function (it) {
+          var ir = el('div', 'rrow'); ir.appendChild(el('span', null, it.name)); ir.appendChild(el('span', null, String(it.qty))); ir.appendChild(el('span', null, eur(it.total)));
+          det.appendChild(ir);
+        });
+        box.appendChild(det);
+      }
+    });
+    return box;
+  }
+
+  function waitersAdmin() {
+    var box = el('div', 'wadmin');
+    box.appendChild(el('h3', null, 'Kamarierët dhe kodet e tyre'));
+    if (!S.waiters.length) box.appendChild(el('p', 'empty', 'Ende nuk ke regjistruar kamarierë. Shto emrin dhe kodin e secilit më poshtë.'));
+    S.waiters.forEach(function (w) {
+      var r = el('div', 'wrow2');
+      var nm = el('span', null); nm.appendChild(el('span', 'cdot c' + waiterColor(w))); nm.appendChild(document.createTextNode(w.name)); r.appendChild(nm);
+      var d = el('button', wDel === w.id ? 'primary' : '', wDel === w.id ? 'Sigurt? Hiqe' : 'Hiq'); d.type = 'button';
+      d.onclick = function () {
+        if (wDel !== w.id) {
+          wDel = w.id; clearTimeout(wDelTimer);
+          wDelTimer = setTimeout(function () { wDel = null; renderReport(); }, 4000);
+          renderReport(); return;
+        }
+        clearTimeout(wDelTimer); wDel = null;
+        S.waiters = S.waiters.filter(function (x) { return x !== w; });
+        if (curW && curW.id === w.id) { curW = null; sel = null; receipt = null; }
+        save(); render();
+      };
+      r.appendChild(d); box.appendChild(r);
+    });
+    var f = el('form', 'wform');
+    var n = el('input'); n.type = 'text'; n.id = 'wName'; n.placeholder = 'Emri i kamarierit'; n.setAttribute('aria-label', 'Emri i kamarierit');
+    var k = el('input'); k.type = 'text'; k.id = 'wCode'; k.inputMode = 'numeric'; k.autocomplete = 'off'; k.placeholder = 'Kodi (4 deri 8 shifra)'; k.setAttribute('aria-label', 'Kodi i kamarierit');
+    var er = el('p', 'pinerr'); er.setAttribute('role', 'alert');
+    var ad = el('button', 'primary', 'Shto kamarier'); ad.type = 'submit';
+    f.appendChild(n); f.appendChild(k); f.appendChild(ad); f.appendChild(er);
+    f.onsubmit = function (e) {
+      e.preventDefault();
+      var name = n.value.trim(), code = k.value.trim(), h = hashPin(code);
+      if (!name) { er.textContent = 'Shkruaj emrin e kamarierit.'; return; }
+      if (!/^\d{4,8}$/.test(code)) { er.textContent = 'Kodi duhet të ketë 4 deri në 8 shifra.'; return; }
+      if (h === getPin() || S.waiters.some(function (x) { return x.pin === h; })) { er.textContent = 'Ky kod është në përdorim. Zgjidh një tjetër.'; return; }
+      S.waiters.push({ id: nid(), name: name, pin: h, color: nextColor() }); save(); renderReport();
+    };
+    box.appendChild(f);
+    return box;
+  }
+
+  function render() { renderWbar(); renderTables(); renderMenu(); renderBill(); renderDay(); renderReport(); renderBills(); renderArchive(); }
+
+  $('addDish').onsubmit = function (e) {
+    e.preventDefault();
+    var name = $('dName').value.trim(), cat = $('dCat').value === 'Pije' ? 'Pije' : 'Ushqim';
+    var price = parseFloat(String($('dPrice').value).replace(',', '.'));
+    if (!name || !isFinite(price)) { $('dName').focus(); return; }
+    S.menu.push({ id: nid(), cat: cat, name: name, price: price }); save();
+    editCat = cat;
+    $('dName').value = ''; $('dPrice').value = '';
+    renderEdit(); renderMenu(); $('dName').focus();
+  };
+  // ---- Paneli i hapur: vetëm një nga Raporti, Faturat, Raportet e ruajtura ----
+  var unlocked = false, pinTarget = null, pinMode = 'enter', memPin = null;
+  var PINKEY = 'restoranti-pin-v1';
+  function hashPin(s) {
+    s = 'rst|' + s;
+    var h1 = 0xdeadbeef ^ s.length, h2 = 0x41c6ce57 ^ s.length;
+    for (var i = 0; i < s.length; i++) { var ch = s.charCodeAt(i); h1 = Math.imul(h1 ^ ch, 2654435761); h2 = Math.imul(h2 ^ ch, 1597334677); }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+    return String(4294967296 * (2097151 & h2) + (h1 >>> 0));
+  }
+  function getPin() { try { var v = localStorage.getItem(PINKEY); if (v) return v; } catch (e) {} return memPin; }
+  function setPin(p) { var h = hashPin(p); memPin = h; try { localStorage.setItem(PINKEY, h); } catch (e) {} }
+
+  function isOpen(w) { return w === 'report' ? showReport : (w === 'bills' ? showBills : showArchive); }
+  function openPanel(w) {
+    var was = isOpen(w);
+    showReport = showBills = showArchive = false; confirmReset = false; archDel = null;
+    $('pinBox').hidden = true;
+    if (!was) { if (w === 'report') showReport = true; else if (w === 'bills') showBills = true; else showArchive = true; }
+    if (!showReport && !showArchive) unlocked = false;
+    renderReport(); renderBills(); renderArchive();
+    var id = w === 'report' ? 'report' : (w === 'bills' ? 'billsList' : 'archive');
+    if (!was && $(id).scrollIntoView) $(id).scrollIntoView({ block: 'start' });
+  }
+  function request(w) {
+    if (isOpen(w) || (w === 'bills' ? !!curW : unlocked)) { openPanel(w); return; }
+    if (w === 'bills') showPinBox('waiter', { panel: 'bills' });
+    else showPinBox(getPin() ? 'enter' : 'create', w);
+  }
+  function showPinBox(mode, target) {
+    pinMode = mode; pinTarget = target || null;
+    var two = mode === 'create' || mode === 'change';
+    $('pinBox').hidden = false;
+    $('pinTitle').textContent = mode === 'waiter' ? 'Fut kodin tënd' : (mode === 'enter' ? 'Fut kodin e pronarit' : (mode === 'create' ? 'Vendos kodin e pronarit' : 'Vendos kodin e ri'));
+    $('pinHint').textContent = mode === 'waiter'
+      ? (S.waiters.length ? 'Pas hyrjes shikon dhe faturon vetëm tavolinat dhe faturat e tua.' : 'Ende nuk ka kamarierë të regjistruar. Pronari i shton te "Mbyll ditën", me kodin e tij.')
+      : (mode === 'enter' ? 'Raporti ditor dhe raportet e ruajtura hapen vetëm me kodin e pronarit.' : 'Zgjidh 4 deri në 8 shifra. Mbaje mend, sepse pa të nuk hapen raportet.');
+    $('pinInput2').hidden = !two;
+    $('pinInput').value = ''; $('pinInput2').value = ''; $('pinErr').textContent = '';
+    $('pinOk').textContent = mode === 'waiter' ? 'Hyr' : (mode === 'enter' ? 'Hap' : 'Ruaj kodin');
+    if ($('pinBox').scrollIntoView) $('pinBox').scrollIntoView({ block: 'start' });
+    $('pinInput').focus();
+  }
+  $('pinForm').onsubmit = function (e) {
+    e.preventDefault();
+    var v = $('pinInput').value.trim(), err = $('pinErr');
+    if (pinMode === 'waiter') {
+      var w = S.waiters.filter(function (x) { return x.pin === hashPin(v); })[0];
+      if (!w) { err.textContent = 'Kodi është gabim.'; $('pinInput').value = ''; $('pinInput').focus(); return; }
+      curW = { id: w.id, name: w.name }; wNote = '';
+      $('pinBox').hidden = true;
+      var tg = pinTarget; pinTarget = null;
+      if (tg && tg.table) tryTable(tg.table);
+      else if (tg && tg.panel) openPanel(tg.panel);
+      render();
+      return;
+    }
+    if (pinMode === 'enter') {
+      if (hashPin(v) !== getPin()) { err.textContent = 'Kodi është gabim.'; $('pinInput').value = ''; $('pinInput').focus(); return; }
+    } else {
+      if (!/^\d{4,8}$/.test(v)) { err.textContent = 'Kodi duhet të ketë 4 deri në 8 shifra.'; return; }
+      if (v !== $('pinInput2').value.trim()) { err.textContent = 'Dy kodet nuk përputhen.'; return; }
+      setPin(v);
+    }
+    unlocked = true; $('pinBox').hidden = true;
+    var t = pinTarget; pinTarget = null;
+    if (t && pinMode !== 'change') openPanel(t);
+  };
+  $('pinCancel').onclick = function () { $('pinBox').hidden = true; pinTarget = null; };
+  $('openReport').onclick = function () { request('report'); };
+  $('openBills').onclick = function () { request('bills'); };
+  $('openArchive').onclick = function () { request('archive'); };
+
+  render(); renderEdit();
+  // Dita e re fillon vetë, edhe nëse faqja ka qëndruar e hapur gjatë natës
+  setInterval(function () { if (rollover()) render(); }, 30000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && rollover()) render(); });
+})();
+</script>
+
+</body></html>
