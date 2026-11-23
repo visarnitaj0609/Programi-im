@@ -169,6 +169,9 @@ details.edit summary { cursor: pointer; font-weight: 600; min-height: 44px; disp
   #printArea .pm { text-align: center; font-size: 14px; margin-bottom: 10px; border-bottom: 2px solid #000; padding-bottom: 6px; }
   #printArea .pl { padding: 6px 0; font-weight: 700; border-bottom: 1px dashed #000; }
 }
+.trow { display: flex; align-items: center; gap: 14px; margin-top: 8px; }
+.trow button { width: 52px; min-height: 48px; font-size: 22px; padding: 0; }
+.tcount { font-family: var(--font-display); font-size: 20px; font-weight: 700; min-width: 110px; text-align: center; }
 .wsum, .wadmin { margin-top: 18px; }
 .wbtn { width: 100%; font: inherit; color: inherit; background: none; border: 0; border-top: 1px solid var(--line); border-radius: 0; text-align: left; min-height: 44px; align-items: center; cursor: pointer; padding: 8px 0; }
 .wbtn:hover { background: var(--bg); }
@@ -265,6 +268,7 @@ details.edit summary { cursor: pointer; font-weight: 600; min-height: 44px; disp
   if (!Array.isArray(S.history)) S.history = [];
   if (!Array.isArray(S.waiters)) S.waiters = [];
   if (!S.owners) S.owners = {};
+  N = S.tables = S.tables || N;
   S.waiters.forEach(function (w, i) { if (w.color == null) w.color = i % 6; });
 
   // Dita dhe ndrimet: raporti përfundon me dorë (ndrimi tjetër fillon vetë), dita e re fillon vetë kur ndërron data
@@ -529,6 +533,7 @@ details.edit summary { cursor: pointer; font-weight: 600; min-height: 44px; disp
     head.appendChild(el('span', 'hint', new Date().toLocaleDateString('sq')));
     c.appendChild(head);
 
+    if (getPin() === DEFAULT_PIN) c.appendChild(el('p', 'warn', 'Po përdor kodin fillestar të programit. Ndryshoje tani me "Ndrysho kodin" poshtë, që të mos e dijë kushdo që e ka programin.'));
     var open = 0; for (var t = 1; t <= N; t++) if (count(t) > 0) open++;
     if (open) c.appendChild(el('p', 'warn', open + (open === 1 ? ' tavolinë ka' : ' tavolina kanë') + ' porosi të pafaturuara. Ato nuk futen në raport.'));
 
@@ -551,6 +556,7 @@ details.edit summary { cursor: pointer; font-weight: 600; min-height: 44px; disp
     c.appendChild(el('p', 'hint', S.day.count + (S.day.count === 1 ? ' faturë' : ' fatura') + ' · ' + pieces + ' artikuj të shitur'));
     c.appendChild(waiterSummary(S.day.bills, 'day', renderReport));
     c.appendChild(waitersAdmin());
+    c.appendChild(tablesAdmin());
 
     var a = el('div', 'actions');
     var close = el('button', null, 'Mbyll raportin'); close.type = 'button';
@@ -813,6 +819,32 @@ details.edit summary { cursor: pointer; font-weight: 600; min-height: 44px; disp
     return box;
   }
 
+  function tablesAdmin() {
+    var box = el('div', 'wadmin');
+    box.appendChild(el('h3', null, 'Tavolinat'));
+    var row = el('div', 'trow');
+    var minus = el('button', null, '−'); minus.type = 'button'; minus.setAttribute('aria-label', 'Hiq tavolinën e fundit');
+    var cnt = el('span', 'tcount', N + (N === 1 ? ' tavolinë' : ' tavolina'));
+    var plus = el('button', null, '+'); plus.type = 'button'; plus.setAttribute('aria-label', 'Shto një tavolinë');
+    var msg = el('p', 'pinerr'); msg.setAttribute('role', 'alert');
+    minus.onclick = function () {
+      if (N <= 1) { msg.textContent = 'Duhet të ketë të paktën një tavolinë.'; return; }
+      if (count(N) > 0) { msg.textContent = 'Tavolina ' + N + ' ka porosi të hapur. Faturoje ose pastroje para se ta heqësh.'; return; }
+      N = S.tables = N - 1;
+      if (sel && sel > N) { sel = null; receipt = null; kitchen = null; }
+      save(); render();
+    };
+    plus.onclick = function () {
+      if (N >= 40) { msg.textContent = 'Mund të kesh deri në 40 tavolina.'; return; }
+      N = S.tables = N + 1; save(); render();
+    };
+    row.appendChild(minus); row.appendChild(cnt); row.appendChild(plus);
+    box.appendChild(row);
+    box.appendChild(msg);
+    box.appendChild(el('p', 'hint', 'Shtohet ose hiqet tavolina e fundit. Një tavolinë me porosi të hapur nuk hiqet.'));
+    return box;
+  }
+
   function render() { renderWbar(); renderTables(); renderMenu(); renderBill(); renderDay(); renderReport(); renderBills(); renderArchive(); }
 
   $('addDish').onsubmit = function (e) {
@@ -828,6 +860,7 @@ details.edit summary { cursor: pointer; font-weight: 600; min-height: 44px; disp
   // ---- Paneli i hapur: vetëm një nga Raporti, Faturat, Raportet e ruajtura ----
   var unlocked = false, pinTarget = null, pinMode = 'enter', memPin = null;
   var PINKEY = 'restoranti-pin-v1';
+  var DEFAULT_PIN = '7169328553454581'; // kodi fillestar i pronarit (i ruajtur i fshehur), ndryshohet te "Ndrysho kodin"
   function hashPin(s) {
     s = 'rst|' + s;
     var h1 = 0xdeadbeef ^ s.length, h2 = 0x41c6ce57 ^ s.length;
@@ -836,7 +869,7 @@ details.edit summary { cursor: pointer; font-weight: 600; min-height: 44px; disp
     h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
     return String(4294967296 * (2097151 & h2) + (h1 >>> 0));
   }
-  function getPin() { try { var v = localStorage.getItem(PINKEY); if (v) return v; } catch (e) {} return memPin; }
+  function getPin() { try { var v = localStorage.getItem(PINKEY); if (v) return v; } catch (e) {} return memPin || DEFAULT_PIN; }
   function setPin(p) { var h = hashPin(p); memPin = h; try { localStorage.setItem(PINKEY, h); } catch (e) {} }
 
   function isOpen(w) { return w === 'report' ? showReport : (w === 'bills' ? showBills : showArchive); }
