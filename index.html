@@ -59,6 +59,7 @@ button { font: inherit; cursor: pointer; border-radius: 10px; border: 1px solid 
 button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 button.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
 button:disabled { opacity: 0.45; cursor: not-allowed; }
+textarea { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; width: 100%; min-width: 0; }
 input[type="text"], input[type="number"], input[type="password"], select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; height: 44px; padding: 0 10px; width: 100%; min-width: 0; }
 
 .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -172,6 +173,13 @@ details.edit summary { cursor: pointer; font-weight: 600; min-height: 44px; disp
 .trow { display: flex; align-items: center; gap: 14px; margin-top: 8px; }
 .trow button { width: 52px; min-height: 48px; font-size: 22px; padding: 0; }
 .tcount { font-family: var(--font-display); font-size: 20px; font-weight: 700; min-width: 110px; text-align: center; }
+.imp { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+.imp textarea { height: auto; padding: 10px; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 15px; resize: vertical; }
+.imp .prev { background: var(--bg); border-radius: 8px; padding: 8px 10px; font-size: 14px; max-height: 280px; overflow: auto; }
+.imp .prev .pr { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; font-variant-numeric: tabular-nums; }
+.imp .prev .pr span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.imp .prev h4 { margin: 8px 0 2px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.imp .prev .bad { color: var(--accent); }
 .wsum, .wadmin { margin-top: 18px; }
 .wbtn { width: 100%; font: inherit; color: inherit; background: none; border: 0; border-top: 1px solid var(--line); border-radius: 0; text-align: left; min-height: 44px; align-items: center; cursor: pointer; padding: 8px 0; }
 .wbtn:hover { background: var(--bg); }
@@ -237,6 +245,17 @@ details.edit summary { cursor: pointer; font-weight: 600; min-height: 44px; disp
         </div>
         <button type="submit" class="primary">Shto në menu</button>
       </form>
+      <div class="imp" id="importBox">
+        <h3>Importo menunë nga lista</h3>
+        <p class="hint">Ngjit listën: një artikull për rresht, si "Emri; çmimi". Shkruaj "Ushqim" ose "Pije" në një rresht të vetëm për të ndarë kategoritë.</p>
+        <textarea id="impText" rows="8" spellcheck="false" aria-label="Lista e menusë" placeholder="Ushqim&#10;Pica Margarita; 6,00&#10;Burger; 6,50&#10;Pije&#10;Ujë; 1,00&#10;Coca-Cola; 1,80"></textarea>
+        <select id="impMode" aria-label="Mënyra e importit">
+          <option value="add">Shto te menuja (përditëso çmimin nëse artikulli ekziston)</option>
+          <option value="replace">Zëvendëso gjithë menunë me këtë listë</option>
+        </select>
+        <button type="button" id="impPreview">Shiko para se ta importosh</button>
+        <div id="impOut"></div>
+      </div>
     </details>
   </section>
 
@@ -857,6 +876,61 @@ details.edit summary { cursor: pointer; font-weight: 600; min-height: 44px; disp
     $('dName').value = ''; $('dPrice').value = '';
     renderEdit(); renderMenu(); $('dName').focus();
   };
+  // ---- Importi i menusë nga lista e ngjitur ----
+  function parseMenu(text) {
+    var cat = 'Ushqim', items = [], bad = [];
+    text.split(/\r?\n/).forEach(function (raw) {
+      var line = raw.replace(/^[\s•*\-·]+/, '').trim();
+      if (!line) return;
+      var low = line.toLowerCase().replace(/[:\-–—\s]+$/, '');
+      if (low === 'ushqim' || low === 'ushqime' || low === 'ushqimet') { cat = 'Ushqim'; return; }
+      if (low === 'pije' || low === 'pijet') { cat = 'Pije'; return; }
+      var m = /^(.*?)[\s;:|\-–—.]*?(\d+(?:[.,]\d{1,2})?)\s*(?:€|eur|euro)?\s*$/i.exec(line);
+      var name = m ? m[1].replace(/[\s;:|\-–—.]+$/, '').trim() : '';
+      if (!m || !name) { bad.push(raw.trim()); return; }
+      items.push({ cat: cat, name: name, price: parseFloat(m[2].replace(',', '.')) });
+    });
+    return { items: items, bad: bad };
+  }
+  var impArmed = false, impTimer = null;
+  $('impPreview').onclick = function () {
+    var out = $('impOut'); out.innerHTML = '';
+    var res = parseMenu($('impText').value), mode = $('impMode').value;
+    if (!res.items.length) { out.appendChild(el('p', 'pinerr', 'Nuk u gjet asnjë artikull. Shkruaj çdo rresht si "Emri; çmimi".')); return; }
+    var prev = el('div', 'prev');
+    ['Ushqim', 'Pije'].forEach(function (c) {
+      var list = res.items.filter(function (i) { return i.cat === c; });
+      if (!list.length) return;
+      prev.appendChild(el('h4', null, c + ' · ' + list.length));
+      list.forEach(function (i) { var r = el('div', 'pr'); r.appendChild(el('span', null, i.name)); r.appendChild(el('span', null, eur(i.price))); prev.appendChild(r); });
+    });
+    if (res.bad.length) {
+      prev.appendChild(el('h4', 'bad', 'Rreshta që nuk u kuptuan (' + res.bad.length + ')'));
+      res.bad.forEach(function (b) { prev.appendChild(el('div', 'bad', b)); });
+    }
+    out.appendChild(prev);
+    var go = el('button', 'primary', mode === 'replace' ? 'Zëvendëso menunë me këta ' + res.items.length + ' artikuj' : 'Shto ' + res.items.length + ' artikuj te menuja'); go.type = 'button';
+    var msg = el('p', 'hint');
+    go.onclick = function () {
+      if (mode === 'replace' && !impArmed) {
+        impArmed = true; go.textContent = 'Sigurt? Menuja e tanishme fshihet. Prek përsëri';
+        clearTimeout(impTimer); impTimer = setTimeout(function () { impArmed = false; go.textContent = 'Zëvendëso menunë me këta ' + res.items.length + ' artikuj'; }, 4000);
+        return;
+      }
+      impArmed = false; clearTimeout(impTimer);
+      if (mode === 'replace') S.menu = [];
+      var added = 0, updated = 0;
+      res.items.forEach(function (it) {
+        var ex = S.menu.filter(function (d) { return d.cat === it.cat && d.name.toLowerCase() === it.name.toLowerCase(); })[0];
+        if (ex) { ex.price = it.price; updated++; } else { S.menu.push({ id: nid(), cat: it.cat, name: it.name, price: it.price }); added++; }
+      });
+      save(); renderEdit(); renderMenu();
+      out.innerHTML = ''; $('impText').value = '';
+      out.appendChild(el('p', 'hint', 'U shtuan ' + added + ' artikuj' + (updated ? ', u përditësuan çmimet e ' + updated : '') + '.'));
+    };
+    out.appendChild(go); out.appendChild(msg);
+  };
+
   // ---- Paneli i hapur: vetëm një nga Raporti, Faturat, Raportet e ruajtura ----
   var unlocked = false, pinTarget = null, pinMode = 'enter', memPin = null;
   var PINKEY = 'restoranti-pin-v1';
