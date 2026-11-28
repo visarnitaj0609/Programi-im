@@ -233,7 +233,7 @@ details.edit summary { cursor: pointer; font-weight: 600; min-height: 44px; disp
         <input type="text" id="dName" placeholder="Emri i ushqimit ose pijes" aria-label="Emri">
         <div class="two">
           <select id="dCat" aria-label="Kategoria"><option value="Ushqim">Ushqim</option><option value="Pije">Pije</option></select>
-          <input type="number" id="dPrice" step="0.05" min="0" inputmode="decimal" placeholder="Çmimi" aria-label="Çmimi">
+          <input type="text" id="dPrice" inputmode="decimal" autocomplete="off" placeholder="Çmimi, p.sh. 3,50" aria-label="Çmimi">
         </div>
         <button type="submit" class="primary">Shto në menu</button>
       </form>
@@ -374,7 +374,7 @@ details.edit summary { cursor: pointer; font-weight: 600; min-height: 44px; disp
 
       var pay = el('div', 'pay');
       var lab = el('label', null, 'Klienti jep'); lab.htmlFor = 'given';
-      var inp = el('input'); inp.type = 'number'; inp.id = 'given'; inp.step = 'any'; inp.min = '0'; inp.inputMode = 'decimal'; inp.placeholder = '0,00';
+      var inp = el('input'); inp.type = 'text'; inp.id = 'given'; inp.autocomplete = 'off'; inp.inputMode = 'decimal'; inp.placeholder = '0,00';
       var chg = el('div', 'change');
       function showChange() {
         var g = parseFloat(String(inp.value).replace(',', '.'));
@@ -389,7 +389,7 @@ details.edit summary { cursor: pointer; font-weight: 600; min-height: 44px; disp
       inp.oninput = showChange;
       var quick = el('div', 'quick');
       var exact = el('button', null, 'Saktë'); exact.type = 'button';
-      exact.onclick = function () { inp.value = Math.round(receipt.total * 100) / 100; showChange(); };
+      exact.onclick = function () { inp.value = String(Math.round(receipt.total * 100) / 100).replace('.', ','); showChange(); };
       quick.appendChild(exact);
       [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 100].forEach(function (v) {
         var qb = el('button', null, String(v)); qb.type = 'button';
@@ -508,7 +508,7 @@ details.edit summary { cursor: pointer; font-weight: 600; min-height: 44px; disp
       var row = el('div', 'editrow');
       var n = el('input'); n.type = 'text'; n.value = d.name; n.id = 'en-' + d.id; n.setAttribute('aria-label', 'Emri');
       n.oninput = function () { d.name = n.value; save(); renderMenu(); };
-      var p = el('input'); p.type = 'number'; p.step = '0.05'; p.min = '0'; p.inputMode = 'decimal'; p.value = d.price; p.id = 'ep-' + d.id; p.setAttribute('aria-label', 'Çmimi');
+      var p = el('input'); p.type = 'text'; p.autocomplete = 'off'; p.inputMode = 'decimal'; p.value = String(d.price).replace('.', ','); p.id = 'ep-' + d.id; p.setAttribute('aria-label', 'Çmimi');
       p.oninput = function () { var v = parseFloat(String(p.value).replace(',', '.')); d.price = isFinite(v) ? v : 0; save(); renderMenu(); };
       var x = el('button', null, '×'); x.type = 'button'; x.style.padding = '0'; x.setAttribute('aria-label', 'Hiq ' + d.name);
       x.onclick = function () { S.menu = S.menu.filter(function (m) { return m !== d; }); save(); renderEdit(); renderMenu(); };
